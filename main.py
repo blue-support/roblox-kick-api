@@ -1,48 +1,39 @@
 from flask import Flask, request, jsonify
-
 app = Flask(__name__)
 
-kick_list = []
+kicklist = set()  # Set für Namen der Spieler, die aktuell gekickt werden sollen
 
 @app.route('/kick', methods=['POST'])
 def kick_player():
-    data = request.get_json()
-    username = data.get("username")
-    reason = data.get("reason", "Kein Grund angegeben")
+    data = request.json
+    username = data.get('username')
+    reason = data.get('reason', 'Du wurdest gekickt!')
 
     if not username:
-        return jsonify({"error": "Kein Benutzername angegeben"}), 400
+        return jsonify({'error': 'Kein Spielername angegeben'}), 400
 
-    # Prüfen, ob Spieler schon auf der Liste ist - wenn ja, Grund updaten
-    for entry in kick_list:
-        if entry['username'].lower() == username.lower():
-            entry['reason'] = reason
-            break
-    else:
-        # Spieler zur Kickliste hinzufügen
-        kick_list.append({"username": username, "reason": reason})
+    # Füge Spieler zur Kicklist hinzu
+    kicklist.add(username)
 
-    return jsonify({"message": f"{username} wurde zur Kickliste hinzugefügt."}), 200
+    # Hier würdest du den Kick an Roblox senden (z.B. über HTTP Request an dein Roblox Spiel)
+    # Zum Beispiel: roblox_kick(username, reason)  <-- Implementiere diese Funktion
 
-
-@app.route('/checkkick/<username>', methods=['GET'])
-def check_kick(username):
-    global kick_list
-    # Suche Spieler in der Liste
-    for entry in kick_list:
-        if entry['username'].lower() == username.lower():
-            reason = entry["reason"]
-            # Spieler aus der Liste entfernen, damit nur einmal gekickt wird
-            kick_list = [k for k in kick_list if k['username'].lower() != username.lower()]
-            return jsonify({"kick": True, "reason": reason})
-
-    return jsonify({"kick": False})
-
+    return jsonify({'message': f'{username} wird gekickt'}), 200
 
 @app.route('/kicklist', methods=['GET'])
 def get_kicklist():
-    return jsonify(kick_list)
+    return jsonify(list(kicklist))
 
+@app.route('/removekick', methods=['POST'])
+def remove_kick():
+    data = request.json
+    username = data.get('username')
+
+    if username in kicklist:
+        kicklist.remove(username)
+        return jsonify({'message': f'{username} aus Kicklist entfernt'}), 200
+    return jsonify({'error': 'Spieler nicht in Kicklist'}), 404
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=10000) 
+    app.run()
+
