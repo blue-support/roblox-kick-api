@@ -39,6 +39,10 @@ def check_kick(username):
     return jsonify({"kick": False})
 
 
+@app.route('/kicklist', methods=['GET'])
+def get_kicklist():
+    return jsonify(kick_list)
+
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
-
