@@ -2,33 +2,28 @@ from flask import Flask, request, jsonify
 
 app = Flask(__name__)
 
-kicklist = set()  # Spieler, die gekickt werden sollen
+kick_list = []  # speichert: [{"username": "...", "reason": "..."}]
 
-@app.route('/kick', methods=['POST'])
+@app.route("/kick", methods=["POST"])
 def kick():
     data = request.json
-    username = data.get('username')
-    if not username:
-        return jsonify({'error': 'Kein Spielername angegeben'}), 400
+    username = data.get("username")
+    reason = data.get("reason", "Du wurdest gekickt!")
+    
+    # Überschreibe vorhandenen Kick für den Spieler (damit immer nur 1 Eintrag)
+    global kick_list
+    kick_list = [k for k in kick_list if k["username"] != username]
+    
+    # Füge neuen Kick-Eintrag hinzu
+    kick_list.append({"username": username, "reason": reason})
+    return jsonify({"status": "ok"})
 
-    kicklist.add(username)
-    return jsonify({'message': f'{username} wurde zur Kickliste hinzugefügt'}), 200
-
-@app.route('/kicklist', methods=['GET'])
+@app.route("/kicklist", methods=["GET"])
 def get_kicklist():
-    # Einfach Liste zurückgeben
-    return jsonify(list(kicklist)), 200
+    return jsonify({"kicks": kick_list})
 
-@app.route('/confirmkick', methods=['POST'])
-def confirm_kick():
-    data = request.json
-    username = data.get('username')
-    if username in kicklist:
-        kicklist.remove(username)
-        return jsonify({'message': f'{username} aus Kickliste entfernt'}), 200
-    return jsonify({'error': 'Spieler nicht in Kickliste'}), 404
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=10000)
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=10000)
 
 
